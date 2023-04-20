@@ -3,11 +3,12 @@ package models
 import "time"
 
 type Product struct {
-	id int64 `json:"id"`
-	price float64 `json:"price"`
-	shortDescription string `json:"shortDescription"`
-	description string `json:"description"`
-	created time.Time `json:"created"`
-	updated time.Time `json:"updated"`
-	name string `json:"name"`
+	Id int64 `json:"id"`
+	Name string `json:"name"`
+	ShortDescription string `json:"shortDescription"`
+	Description string `json:"description"`
+	Price float64 `json:"price"`
+	Created time.Time `json:"created"`
+	Updated time.Time `json:"updated"`
+	
 }

@@ -142,7 +142,43 @@ func insertProduct(product models.Product) int64{
 }
 
 func UpdateProduct(w http.ResponseWriter, r *http.Request) {
+	params := mux.Vars(r)
+	id, err := strconv.Atoi(params["id"])
+	if err != nil {
+		log.Fatalf("Unable to convert string into int %v", err)
+	}
 
+	var product models.Product
+
+	err = json.NewDecoder(r.Body).Decode(&product)
+	if err!=nil{
+		log.Fatalf("Unable to decode the request %v", err)
+	}
+
+	updatedRows := updateProduct(int64(id), product)
+	msg := fmt.Sprintf("Product updated successfully %v", updatedRows)
+	res := response{
+		ID: int64(id),
+		Message: msg,
+	}
+	json.NewEncoder(w).Encode(res)
+}
+
+func updateProduct(id int64, product models.Product)int64 {
+	db := createConnection()
+	defer db.Close()
+	sqlStatement := `UPDATE products SET name=$2, shortdescription=$3, description=$4, price=$5, updated=Now() WHERE id=$1`
+
+	res, err := db.Exec(sqlStatement, id, product.Name, product.ShortDescription, product.Description, product.Price)
+	if err!=nil {
+		log.Fatalf("Unable to execute the query %v", err)
+	}
+
+	rowAffected, err := res.RowsAffected()
+	if err!=nil {
+		log.Fatalf("Error while checking the affected rows %v", err)
+	}
+	return rowAffected
 }
 
 func DeleteProduct(w http.ResponseWriter, r *http.Request) {

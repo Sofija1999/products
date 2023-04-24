@@ -10,5 +10,5 @@ type Product struct {
 	Price float64 `json:"price"`
 	Created time.Time `json:"created"`
 	Updated time.Time `json:"updated"`
-	
+	Quantity int64 `json:"quantity"`
 }

@@ -10,5 +10,6 @@ CREATE TABLE public.products (
 	price numeric NULL,
 	created timestamp NULL,
 	updated timestamp NULL,
+	quantity int4 NULL,
 	CONSTRAINT products_pk PRIMARY KEY (id)
 );

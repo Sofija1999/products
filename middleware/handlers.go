@@ -167,9 +167,9 @@ func UpdateProduct(w http.ResponseWriter, r *http.Request) {
 func updateProduct(id int64, product models.Product)int64 {
 	db := createConnection()
 	defer db.Close()
-	sqlStatement := `UPDATE products SET name=$2, shortdescription=$3, description=$4, price=$5, updated=Now() WHERE id=$1`
+	sqlStatement := `UPDATE products SET name=$2, shortdescription=$3, description=$4, price=$5, updated=Now(), quantity=$6 WHERE id=$1`
 
-	res, err := db.Exec(sqlStatement, id, product.Name, product.ShortDescription, product.Description, product.Price)
+	res, err := db.Exec(sqlStatement, id, product.Name, product.ShortDescription, product.Description, product.Price, product.Quantity)
 	if err!=nil {
 		log.Fatalf("Unable to execute the query %v", err)
 	}

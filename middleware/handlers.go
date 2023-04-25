@@ -286,7 +286,36 @@ func getCategory(id int64)(models.Category, error) {
 }
 
 func GetAllCategories(w http.ResponseWriter, r *http.Request) {
-	
+	categories, err := getAllCategories()
+	if err!=nil{
+		log.Fatalf("Unable to get all the categories %v", err)
+	}
+
+	json.NewEncoder(w).Encode(categories)
+}
+
+func getAllCategories()([]models.Category, error) {
+	db := createConnection()
+	defer db.Close()
+	sqlStatement := `SELECT * FROM categories`
+
+	var categories []models.Category
+
+	rows, err := db.Query(sqlStatement)
+	if err!=nil{
+		log.Fatalf("Unable to execute the query %v", err)
+	}
+
+	defer rows.Close()
+	for rows.Next(){
+		var category models.Category
+		err := rows.Scan(&category.Category_id, &category.Category_name, &category.Created_at, &category.Updated_at)
+		if err!=nil{
+			log.Fatalf("Unable to scan the row %v", err)
+		}
+		categories = append(categories, category)
+	}
+	return categories, err
 }
 
 func UpdateCategory(w http.ResponseWriter, r *http.Request) {

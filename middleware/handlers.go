@@ -130,11 +130,11 @@ func CreateProduct(w http.ResponseWriter, r *http.Request) {
 func insertProduct(product models.Product) int64{
 	db := createConnection()
 	defer db.Close()
-	sqlStatement := `INSERT INTO products(name, shortDescription, description, price, created, updated, quantity) VALUES($1,$2,$3,$4,Now(),Now(),$5) RETURNING id`
+	sqlStatement := `INSERT INTO products(name, shortDescription, description, price, created, updated, quantity, category_id) VALUES($1,$2,$3,$4,Now(),Now(),$5, $6) RETURNING id`
 
 	var id int64
 
-	err := db.QueryRow(sqlStatement, product.Name, product.ShortDescription, product.Description, product.Price, product.Quantity).Scan(&id)
+	err := db.QueryRow(sqlStatement, product.Name, product.ShortDescription, product.Description, product.Price, product.Quantity, product.Category_id).Scan(&id)
 	if err!=nil{
 		log.Fatalf("Unable to execute the query %v", err)
 	}

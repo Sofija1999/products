@@ -64,7 +64,7 @@ func getProduct(id int64)(models.Product, error) {
 	var product models.Product
 
 	row := db.QueryRow(sqlStatement, id)
-	err := row.Scan(&product.Id, &product.Name, &product.ShortDescription, &product.Description, &product.Price, &product.Created,&product.Updated, &product.Quantity)
+	err := row.Scan(&product.Id, &product.Name, &product.ShortDescription, &product.Description, &product.Price, &product.Created,&product.Updated, &product.Quantity, &product.Category_id)
 
 	switch err {
 	case sql.ErrNoRows:
@@ -101,7 +101,7 @@ func getAllProducts()([]models.Product, error) {
 	defer rows.Close()
 	for rows.Next(){
 		var product models.Product
-		err := rows.Scan(&product.Id, &product.Name, &product.ShortDescription,&product.Description, &product.Price, &product.Created, &product.Updated, &product.Quantity)
+		err := rows.Scan(&product.Id, &product.Name, &product.ShortDescription,&product.Description, &product.Price, &product.Created, &product.Updated, &product.Quantity, &product.Category_id)
 		if err!=nil {
 			log.Fatalf("Unable to scan the row %v", err)
 		}

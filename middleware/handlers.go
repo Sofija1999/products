@@ -359,5 +359,35 @@ func updateCategory(id int64, category models.Category)int64 {
 }
 
 func DeleteCategory(w http.ResponseWriter, r *http.Request) {
-	
+	params := mux.Vars(r)
+	id, err := strconv.Atoi(params["id"])
+	if err!=nil{
+		log.Fatalf("Unable to convert string into int %v", err)
+	}
+
+	deletedRows := deleteCategory(int64(id))
+	msg := fmt.Sprintf("Category deleted successfully %v", deletedRows)
+	res := response{
+		ID: int64(id),
+		Message: msg,
+	}
+	json.NewEncoder(w).Encode(res)
+}
+
+func deleteCategory(id int64)int64 {
+	db := createConnection()
+	defer db.Close()
+	sqlStatement := `DELETE FROM categories WHERE category_id=$1`
+
+	res, err := db.Exec(sqlStatement, id)
+	if err!=nil{
+		log.Fatalf("Unable to execute the query %v", err)
+	}
+
+	rowsAffected, err := res.RowsAffected()
+	if err!=nil{
+		log.Fatalf("Error while checking the affected rows, %v", rowsAffected)
+	}
+
+	return rowsAffected
 }

@@ -212,3 +212,54 @@ func deleteProduct(id int64) int64 {
 	}
 	return rowsAffected
 }
+
+func CreateCategory(w http.ResponseWriter, r *http.Request) {
+	var category models.Category
+
+	err := json.NewDecoder(r.Body).Decode(&category)
+	if err!=nil{
+		log.Fatalf("Unable to decode the request body %v", err)
+	}
+
+	insertID := insertCategory(category)
+
+	res := response{
+		ID: insertID,
+		Message: "Category create successfully",
+	}
+
+	json.NewEncoder(w).Encode(res)
+}
+
+func insertCategory(category models.Category) int64 {
+	db := createConnection()
+	defer db.Close()
+	sqlStatement := `INSERT INTO categories(category_name,created_at,updated_at) VALUES ($1, Now(), Now()) RETURNING category_id`
+
+	var id int64
+
+	err := db.QueryRow(sqlStatement, category.Category_name).Scan(&id)
+	if err!=nil{
+		log.Fatalf("Unable to execute the query %v", err)
+	}
+
+	fmt.Printf("Inserted a single record %v", id)
+
+	return id
+}
+
+func GetCategory(w http.ResponseWriter, r *http.Request) {
+	
+}
+
+func GetAllCategories(w http.ResponseWriter, r *http.Request) {
+	
+}
+
+func UpdateCategory(w http.ResponseWriter, r *http.Request) {
+	
+}
+
+func DeleteCategory(w http.ResponseWriter, r *http.Request) {
+	
+}

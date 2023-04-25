@@ -12,3 +12,10 @@ type Product struct {
 	Updated time.Time `json:"updated"`
 	Quantity int64 `json:"quantity"`
 }
+
+type Category struct {
+	Category_id int64 `json:"category_id"`
+	Category_name string `json:"category_name"`
+	Created_at time.Time `json:"created_at"`
+	Updated_at time.Time `json:"updated_at"`
+}

@@ -319,7 +319,43 @@ func getAllCategories()([]models.Category, error) {
 }
 
 func UpdateCategory(w http.ResponseWriter, r *http.Request) {
-	
+	params := mux.Vars(r)
+	id, err := strconv.Atoi(params["id"])
+	if err!=nil{
+		log.Fatalf("Unable to convert strig into int %v", err)
+	}
+
+	var category models.Category
+
+	err = json.NewDecoder(r.Body).Decode(&category)
+	if err!=nil{
+		log.Fatalf("Unable to decode the request %v", err)
+	}
+
+	updatedRow := updateCategory(int64(id), category)
+	msg := fmt.Sprintf("Category updated successfully  %v", updatedRow)
+	res:=response{
+		ID: int64(id),
+		Message: msg,
+	}
+	json.NewEncoder(w).Encode(res)
+}
+
+func updateCategory(id int64, category models.Category)int64 {
+	db := createConnection()
+	defer db.Close()
+	sqlStatement := `UPDATE categories SET category_name=$2, updated_at=Now() WHERE category_id=$1`
+
+	res, err := db.Exec(sqlStatement, id, category.Category_name)
+	if err!=nil{
+		log.Fatalf("Unable to execute the query %v", err)
+	}
+
+	rowAffected, err := res.RowsAffected()
+	if err!=nil{
+		log.Fatalf("Error while checking the affected rows %v", err)
+	}
+	return rowAffected
 }
 
 func DeleteCategory(w http.ResponseWriter, r *http.Request) {

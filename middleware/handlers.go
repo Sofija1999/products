@@ -249,7 +249,40 @@ func insertCategory(category models.Category) int64 {
 }
 
 func GetCategory(w http.ResponseWriter, r *http.Request) {
-	
+	params := mux.Vars(r)
+	id, err := strconv.Atoi(params["id"])
+	if err!=nil{
+		log.Fatalf("Unable to convert string into int %v", err)
+	}
+
+	category, err := getCategory(int64(id))
+	if err!=nil{
+		log.Fatalf("Unable to get category %v", err)
+	}
+
+	json.NewEncoder(w).Encode(category)
+}
+
+func getCategory(id int64)(models.Category, error) {
+	db := createConnection()
+	defer db.Close()
+	sqlStatement := `SELECT * FROM categories WHERE category_id=$1`
+
+	var category models.Category
+
+	row := db.QueryRow(sqlStatement, id)
+	err := row.Scan(&category.Category_id, &category.Category_name, &category.Created_at, &category.Updated_at)
+
+	switch err{
+	case sql.ErrNoRows:
+		fmt.Println("Now rows were returned")
+		return category, nil
+	case nil:
+		return category, nil
+	default:
+		log.Fatalf("Unable to scan the row %v", err)
+	}
+	return category, err
 }
 
 func GetAllCategories(w http.ResponseWriter, r *http.Request) {

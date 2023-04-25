@@ -17,7 +17,7 @@ func Router() *mux.Router{
 	router.HandleFunc("/api/product/{id}", middleware.UpdateProduct).Methods("PUT", "OPTIONS")
 	router.HandleFunc("/api/deleteproduct/{id}", middleware.DeleteProduct).Methods("DELETE", "OPTIONS")
 
-	router.HandleFunc("/api/category/{id}", middleware.CreateCategory).Methods("POST", "OPTIONS")
+	router.HandleFunc("/api/newcategory", middleware.CreateCategory).Methods("POST", "OPTIONS")
 	router.HandleFunc("/api/category/{id}", middleware.GetCategory).Methods("GET", "OPTIONS")
 	router.HandleFunc("/api/category", middleware.GetAllCategories).Methods("GET", "OPTIONS")
 	router.HandleFunc("/api/category/{id}", middleware.UpdateCategory).Methods("PUT", "OPTIONS")

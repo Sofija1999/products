@@ -64,7 +64,7 @@ func getProduct(id int64)(models.Product, error) {
 	var product models.Product
 
 	row := db.QueryRow(sqlStatement, id)
-	err := row.Scan(&product.Id, &product.Name, &product.ShortDescription, &product.Description, &product.Price, &product.Created,&product.Updated, &product.Quantity)
+	err := row.Scan(&product.Id, &product.Name, &product.ShortDescription, &product.Description, &product.Price, &product.Created,&product.Updated, &product.Quantity, &product.Category_id)
 
 	switch err {
 	case sql.ErrNoRows:
@@ -101,7 +101,7 @@ func getAllProducts()([]models.Product, error) {
 	defer rows.Close()
 	for rows.Next(){
 		var product models.Product
-		err := rows.Scan(&product.Id, &product.Name, &product.ShortDescription,&product.Description, &product.Price, &product.Created, &product.Updated, &product.Quantity)
+		err := rows.Scan(&product.Id, &product.Name, &product.ShortDescription,&product.Description, &product.Price, &product.Created, &product.Updated, &product.Quantity, &product.Category_id)
 		if err!=nil {
 			log.Fatalf("Unable to scan the row %v", err)
 		}
@@ -130,11 +130,11 @@ func CreateProduct(w http.ResponseWriter, r *http.Request) {
 func insertProduct(product models.Product) int64{
 	db := createConnection()
 	defer db.Close()
-	sqlStatement := `INSERT INTO products(name, shortDescription, description, price, created, updated, quantity) VALUES($1,$2,$3,$4,Now(),Now(),$5) RETURNING id`
+	sqlStatement := `INSERT INTO products(name, shortDescription, description, price, created, updated, quantity, category_id) VALUES($1,$2,$3,$4,Now(),Now(),$5, $6) RETURNING id`
 
 	var id int64
 
-	err := db.QueryRow(sqlStatement, product.Name, product.ShortDescription, product.Description, product.Price, product.Quantity).Scan(&id)
+	err := db.QueryRow(sqlStatement, product.Name, product.ShortDescription, product.Description, product.Price, product.Quantity, product.Category_id).Scan(&id)
 	if err!=nil{
 		log.Fatalf("Unable to execute the query %v", err)
 	}
@@ -167,9 +167,9 @@ func UpdateProduct(w http.ResponseWriter, r *http.Request) {
 func updateProduct(id int64, product models.Product)int64 {
 	db := createConnection()
 	defer db.Close()
-	sqlStatement := `UPDATE products SET name=$2, shortdescription=$3, description=$4, price=$5, updated=Now(), quantity=$6 WHERE id=$1`
+	sqlStatement := `UPDATE products SET name=$2, shortdescription=$3, description=$4, price=$5, updated=Now(), quantity=$6, category_id=$7 WHERE id=$1`
 
-	res, err := db.Exec(sqlStatement, id, product.Name, product.ShortDescription, product.Description, product.Price, product.Quantity)
+	res, err := db.Exec(sqlStatement, id, product.Name, product.ShortDescription, product.Description, product.Price, product.Quantity, product.Category_id)
 	if err!=nil {
 		log.Fatalf("Unable to execute the query %v", err)
 	}
@@ -210,5 +210,184 @@ func deleteProduct(id int64) int64 {
 	if err!=nil {
 		log.Fatalf("Error while checking the affected rows %v", err)
 	}
+	return rowsAffected
+}
+
+func CreateCategory(w http.ResponseWriter, r *http.Request) {
+	var category models.Category
+
+	err := json.NewDecoder(r.Body).Decode(&category)
+	if err!=nil{
+		log.Fatalf("Unable to decode the request body %v", err)
+	}
+
+	insertID := insertCategory(category)
+
+	res := response{
+		ID: insertID,
+		Message: "Category create successfully",
+	}
+
+	json.NewEncoder(w).Encode(res)
+}
+
+func insertCategory(category models.Category) int64 {
+	db := createConnection()
+	defer db.Close()
+	sqlStatement := `INSERT INTO categories(category_name,created_at,updated_at) VALUES ($1, Now(), Now()) RETURNING category_id`
+
+	var id int64
+
+	err := db.QueryRow(sqlStatement, category.Category_name).Scan(&id)
+	if err!=nil{
+		log.Fatalf("Unable to execute the query %v", err)
+	}
+
+	fmt.Printf("Inserted a single record %v", id)
+
+	return id
+}
+
+func GetCategory(w http.ResponseWriter, r *http.Request) {
+	params := mux.Vars(r)
+	id, err := strconv.Atoi(params["id"])
+	if err!=nil{
+		log.Fatalf("Unable to convert string into int %v", err)
+	}
+
+	category, err := getCategory(int64(id))
+	if err!=nil{
+		log.Fatalf("Unable to get category %v", err)
+	}
+
+	json.NewEncoder(w).Encode(category)
+}
+
+func getCategory(id int64)(models.Category, error) {
+	db := createConnection()
+	defer db.Close()
+	sqlStatement := `SELECT * FROM categories WHERE category_id=$1`
+
+	var category models.Category
+
+	row := db.QueryRow(sqlStatement, id)
+	err := row.Scan(&category.Category_id, &category.Category_name, &category.Created_at, &category.Updated_at)
+
+	switch err{
+	case sql.ErrNoRows:
+		fmt.Println("Now rows were returned")
+		return category, nil
+	case nil:
+		return category, nil
+	default:
+		log.Fatalf("Unable to scan the row %v", err)
+	}
+	return category, err
+}
+
+func GetAllCategories(w http.ResponseWriter, r *http.Request) {
+	categories, err := getAllCategories()
+	if err!=nil{
+		log.Fatalf("Unable to get all the categories %v", err)
+	}
+
+	json.NewEncoder(w).Encode(categories)
+}
+
+func getAllCategories()([]models.Category, error) {
+	db := createConnection()
+	defer db.Close()
+	sqlStatement := `SELECT * FROM categories`
+
+	var categories []models.Category
+
+	rows, err := db.Query(sqlStatement)
+	if err!=nil{
+		log.Fatalf("Unable to execute the query %v", err)
+	}
+
+	defer rows.Close()
+	for rows.Next(){
+		var category models.Category
+		err := rows.Scan(&category.Category_id, &category.Category_name, &category.Created_at, &category.Updated_at)
+		if err!=nil{
+			log.Fatalf("Unable to scan the row %v", err)
+		}
+		categories = append(categories, category)
+	}
+	return categories, err
+}
+
+func UpdateCategory(w http.ResponseWriter, r *http.Request) {
+	params := mux.Vars(r)
+	id, err := strconv.Atoi(params["id"])
+	if err!=nil{
+		log.Fatalf("Unable to convert strig into int %v", err)
+	}
+
+	var category models.Category
+
+	err = json.NewDecoder(r.Body).Decode(&category)
+	if err!=nil{
+		log.Fatalf("Unable to decode the request %v", err)
+	}
+
+	updatedRow := updateCategory(int64(id), category)
+	msg := fmt.Sprintf("Category updated successfully  %v", updatedRow)
+	res:=response{
+		ID: int64(id),
+		Message: msg,
+	}
+	json.NewEncoder(w).Encode(res)
+}
+
+func updateCategory(id int64, category models.Category)int64 {
+	db := createConnection()
+	defer db.Close()
+	sqlStatement := `UPDATE categories SET category_name=$2, updated_at=Now() WHERE category_id=$1`
+
+	res, err := db.Exec(sqlStatement, id, category.Category_name)
+	if err!=nil{
+		log.Fatalf("Unable to execute the query %v", err)
+	}
+
+	rowAffected, err := res.RowsAffected()
+	if err!=nil{
+		log.Fatalf("Error while checking the affected rows %v", err)
+	}
+	return rowAffected
+}
+
+func DeleteCategory(w http.ResponseWriter, r *http.Request) {
+	params := mux.Vars(r)
+	id, err := strconv.Atoi(params["id"])
+	if err!=nil{
+		log.Fatalf("Unable to convert string into int %v", err)
+	}
+
+	deletedRows := deleteCategory(int64(id))
+	msg := fmt.Sprintf("Category deleted successfully %v", deletedRows)
+	res := response{
+		ID: int64(id),
+		Message: msg,
+	}
+	json.NewEncoder(w).Encode(res)
+}
+
+func deleteCategory(id int64)int64 {
+	db := createConnection()
+	defer db.Close()
+	sqlStatement := `DELETE FROM categories WHERE category_id=$1`
+
+	res, err := db.Exec(sqlStatement, id)
+	if err!=nil{
+		log.Fatalf("Unable to execute the query %v", err)
+	}
+
+	rowsAffected, err := res.RowsAffected()
+	if err!=nil{
+		log.Fatalf("Error while checking the affected rows, %v", rowsAffected)
+	}
+
 	return rowsAffected
 }

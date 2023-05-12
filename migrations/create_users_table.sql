@@ -1,4 +1,4 @@
-CREATE TABLE users (
+REATE TABLE users (
     id bigserial NOT NULL,
     first_name varchar NULL,
     last_name varchar NULL,

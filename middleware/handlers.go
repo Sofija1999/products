@@ -13,6 +13,9 @@ import (
 	"github.com/gorilla/mux"
 	"github.com/joho/godotenv"
 	_"github.com/lib/pq"
+	"golang.org/x/crypto/bcrypt"
+
+
 )
 
 type response struct {
@@ -390,4 +393,43 @@ func deleteCategory(id int64)int64 {
 	}
 
 	return rowsAffected
+}
+
+func UserRegister(w http.ResponseWriter, r *http.Request){
+	var user models.User
+
+	err := json.NewDecoder(r.Body).Decode(&user)
+	if err != nil {
+		log.Fatalf("Unable to decode the request body %v", err)
+	}
+
+	userID := insertUser(user)
+
+	res := response{
+		ID: userID,
+		Message: "User create successfully",
+	}
+	json.NewEncoder(w).Encode(res)
+}
+
+func insertUser(user models.User) int64{
+	db := createConnection()
+	defer db.Close()
+	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(user.Password), bcrypt.DefaultCost)
+    if err != nil {
+        panic(err)
+    }
+	user.Password = string(hashedPassword)
+	sqlStatement := `INSERT INTO users(first_name, last_name, email, password, created_at) 
+	VALUES ($1, $2, $3, $4, Now() ) RETURNING id`
+
+	var id int64
+
+	err = db.QueryRow(sqlStatement, user.First_name, user.Last_name, user.Email, user.Password).Scan(&id)
+	if err!=nil {
+		log.Fatalf("Unable to execute the query %v", err)
+	}
+
+	return id
+
 }

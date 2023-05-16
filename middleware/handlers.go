@@ -547,3 +547,43 @@ func withJWTAuth(handlerFunc http.HandlerFunc) http.HandlerFunc {
 
 	}
 }*/
+
+func UpdateUser(w http.ResponseWriter, r *http.Request) {
+	params := mux.Vars(r)
+	id, err := strconv.Atoi(params["id"])
+	if err != nil {
+		log.Fatalf("Unable to convert strig into int %v", err)
+	}
+
+	var user models.User
+
+	err = json.NewDecoder(r.Body).Decode(&user)
+	if err != nil {
+		log.Fatalf("Unable to decode the request %v", err)
+	}
+
+	updatedRow := updateUser(int64(id), user)
+	msg := fmt.Sprintf("User updated successfully  %v", updatedRow)
+	res := response{
+		ID:      int64(id),
+		Message: msg,
+	}
+	json.NewEncoder(w).Encode(res)
+}
+
+func updateUser(id int64, user models.User) int64 {
+	db := createConnection()
+	defer db.Close()
+	sqlStatement := `UPDATE users SET first_name=$2, last_name=$3 WHERE id=$1`
+
+	res, err := db.Exec(sqlStatement, id, user.First_name, user.Last_name)
+	if err != nil {
+		log.Fatalf("Unable to execute the query %v", err)
+	}
+
+	rowAffected, err := res.RowsAffected()
+	if err != nil {
+		log.Fatalf("Error while checking the affected rows %v", err)
+	}
+	return rowAffected
+}

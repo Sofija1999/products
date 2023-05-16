@@ -9,7 +9,6 @@ import (
 	"os"
 	"products/models"
 	"strconv"
-	"time"
 
 	"github.com/golang-jwt/jwt/v4"
 	"github.com/gorilla/mux"
@@ -450,12 +449,15 @@ func UserLogin(w http.ResponseWriter, r *http.Request) {
 	}
 	fmt.Println("email ispravan")
 
-	checkPassword := checkPassword(req.Email, req.Password)
-
-	if checkPassword == false {
-		log.Fatalf("In database we dont have user with this password.")
+	/*user,err := getUserByEmail(req.Email)
+	if err!=nil{
+		log.Fatalf("user dont exist %v", err)
 	}
-	fmt.Println("password ispravan")
+
+	if !validPassword(req.Password, user){
+		log.Fatalf("In database we dont have user with this password.")
+	}*/
+ 
 
 	tokenString, err := createJWT(req.Email, req.Password)
 	if err != nil {
@@ -467,29 +469,8 @@ func UserLogin(w http.ResponseWriter, r *http.Request) {
 
 // eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJhdXRob3JpemVkIjp0cnVlLCJleHAiOiIyMDIzLTA1LTE2VDExOjUzOjI0LjAyMDQ1NTYyNSswMjowMCIsInVzZXIiOiJzb2ZpamFAZ21haWwuY29tIn0.hHYX9xD7kT1ngxzJFEIeNHDbjWdEH7NsCgjOJB8GNx8
 
-func checkPassword(email string, password string) bool {
-	db := createConnection()
-	defer db.Close()
-
-	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
-	if err != nil {
-		panic(err)
-	}
-
-	password = string(hashedPassword)
-	fmt.Println(password)
-
-	sqlStatement := `SELECT password FROM users WHERE email=$1 AND password=$2`
-	row := db.QueryRow(sqlStatement, password)
-
-	switch err := row.Scan(&password); err{
-	case sql.ErrNoRows:
-		fmt.Println("No rows were returned")
-		return false
-	default:
-		return true
-	}
-
+func validPassword(password string, user models.User) bool {
+	return bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(password))==nil
 }
 
 func checkEmail(email string) bool {
@@ -510,17 +491,17 @@ func checkEmail(email string) bool {
 }
 
 func createJWT(email string, password string) (string, error) {
-	token := jwt.New(jwt.SigningMethodHS256)
-	claims := token.Claims.(jwt.MapClaims)
-	claims["exp"] = time.Now().Add(15 * time.Minute)
-	claims["authorized"] = true
-	claims["user"] = email
+	claims := &jwt.MapClaims{
+		"expiresAt": 15000,
+		"user": email,
+	}
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
+	
 
-	tokenString, err := token.SignedString([]byte(sampleSecretKey))
-	return tokenString, err
+	return token.SignedString([]byte(sampleSecretKey))
 }
 
-/*func validateJWT(tokenString string) (*jwt.Token, error) {
+func validateJWT(tokenString string) (*jwt.Token, error) {
 
 	return jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
 		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
@@ -530,7 +511,7 @@ func createJWT(email string, password string) (string, error) {
 	})
 }
 
-func withJWTAuth(handlerFunc http.HandlerFunc) http.HandlerFunc {
+func WithJWTAuth(handlerFunc http.HandlerFunc) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 
 		tokenString := r.Header.Get("x-jwt-token")
@@ -543,10 +524,22 @@ func withJWTAuth(handlerFunc http.HandlerFunc) http.HandlerFunc {
 			log.Fatalf("token invalid %v", err)
 		}
 
+		params := mux.Vars(r)
+		userid, err := strconv.Atoi(params["id"])
+		if err!=nil {
+			log.Fatalf("Unable to convert string into int %v", err)
+		}
+		user, err := getUserByID(int64(userid))
+
+		claims := token.Claims.(jwt.MapClaims)
+		if user.Email != claims["user"] {
+			log.Fatalf("unable user %v", err)
+		}
+
 		handlerFunc(w, r)
 
 	}
-}*/
+}
 
 func UpdateUser(w http.ResponseWriter, r *http.Request) {
 	params := mux.Vars(r)
@@ -586,4 +579,75 @@ func updateUser(id int64, user models.User) int64 {
 		log.Fatalf("Error while checking the affected rows %v", err)
 	}
 	return rowAffected
+}
+
+func GetUserByID(w http.ResponseWriter, r *http.Request) {
+	params := mux.Vars(r)
+	id, err := strconv.Atoi(params["id"])
+	if err != nil {
+		log.Fatalf("Unable to convert string into int %v", err)
+	}
+
+	user, err := getUserByID(int64(id))
+	if err != nil {
+		log.Fatalf("Unable to get user %v", err)
+	}
+
+	json.NewEncoder(w).Encode(user)
+}
+
+func getUserByID(id int64) (models.User, error) {
+	db := createConnection()
+	defer db.Close()
+	sqlStatement := `SELECT * FROM users WHERE id=$1`
+
+	var user models.User
+
+	row := db.QueryRow(sqlStatement, id)
+	err := row.Scan(&user.Id, &user.First_name, &user.Last_name, &user.Email, &user.Password, &user.Created_at)
+
+	switch err {
+	case sql.ErrNoRows:
+		fmt.Println("Now rows were returned")
+		return user, nil
+	case nil:
+		return user, nil
+	default:
+		log.Fatalf("Unable to scan the row %v", err)
+	}
+	return user, err
+}
+
+func GetUserByEmail(w http.ResponseWriter, r *http.Request) {
+	params := mux.Vars(r)
+	email := params["email"]
+
+	user, err := getUserByEmail(email)
+	if err != nil {
+		log.Fatalf("Unable to get user %v", err)
+	}
+
+	json.NewEncoder(w).Encode(user)
+}
+
+func getUserByEmail(email string) (models.User, error) {
+	db := createConnection()
+	defer db.Close()
+	sqlStatement := `SELECT * FROM users WHERE email=$1`
+
+	var user models.User
+
+	row := db.QueryRow(sqlStatement, email)
+	err := row.Scan(&user.Id, &user.First_name, &user.Last_name, &user.Email, &user.Password, &user.Created_at)
+
+	switch err {
+	case sql.ErrNoRows:
+		fmt.Println("Now rows were returned")
+		return user, nil
+	case nil:
+		return user, nil
+	default:
+		log.Fatalf("Unable to scan the row %v", err)
+	}
+	return user, err
 }

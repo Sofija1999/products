@@ -18,7 +18,7 @@ import (
 )
 
 type response struct {
-	ID      int64  `json:"id,omitempty"`
+	Id int64 `json:"id, omitempty"`
 	Message string `json:"message,omitempty"`
 }
 
@@ -42,6 +42,12 @@ func createConnection() *sql.DB {
 	fmt.Println("Successfully connected to postgres..")
 	return db
 }
+
+/*func writeJSON(w http.ResponseWriter, status int, v any) error {
+	w.Header().Add("Content-Type", "application/json")
+	w.WriteHeader(status)
+	return json.NewEncoder(w).Encode(v)
+}*/
 
 func GetProduct(w http.ResponseWriter, r *http.Request) {
 	params := mux.Vars(r)
@@ -123,7 +129,7 @@ func CreateProduct(w http.ResponseWriter, r *http.Request) {
 	insertID := insertProduct(product)
 
 	res := response{
-		ID:      insertID,
+		Id:      insertID,
 		Message: "Product create successfully",
 	}
 	json.NewEncoder(w).Encode(res)
@@ -160,7 +166,7 @@ func UpdateProduct(w http.ResponseWriter, r *http.Request) {
 	updatedRows := updateProduct(int64(id), product)
 	msg := fmt.Sprintf("Product updated successfully %v", updatedRows)
 	res := response{
-		ID:      int64(id),
+		Id:      int64(id),
 		Message: msg,
 	}
 	json.NewEncoder(w).Encode(res)
@@ -193,7 +199,7 @@ func DeleteProduct(w http.ResponseWriter, r *http.Request) {
 	deletedRow := deleteProduct(int64(id))
 	msg := fmt.Sprintf("Product deleted successfully %v", deletedRow)
 	res := response{
-		ID:      int64(id),
+		Id:      int64(id),
 		Message: msg,
 	}
 	json.NewEncoder(w).Encode(res)
@@ -226,7 +232,7 @@ func CreateCategory(w http.ResponseWriter, r *http.Request) {
 	insertID := insertCategory(category)
 
 	res := response{
-		ID:      insertID,
+		Id:      insertID,
 		Message: "Category create successfully",
 	}
 
@@ -337,7 +343,7 @@ func UpdateCategory(w http.ResponseWriter, r *http.Request) {
 	updatedRow := updateCategory(int64(id), category)
 	msg := fmt.Sprintf("Category updated successfully  %v", updatedRow)
 	res := response{
-		ID:      int64(id),
+		Id:      int64(id),
 		Message: msg,
 	}
 	json.NewEncoder(w).Encode(res)
@@ -370,7 +376,7 @@ func DeleteCategory(w http.ResponseWriter, r *http.Request) {
 	deletedRows := deleteCategory(int64(id))
 	msg := fmt.Sprintf("Category deleted successfully %v", deletedRows)
 	res := response{
-		ID:      int64(id),
+		Id:      int64(id),
 		Message: msg,
 	}
 	json.NewEncoder(w).Encode(res)
@@ -394,7 +400,7 @@ func deleteCategory(id int64) int64 {
 	return rowsAffected
 }
 
-func UserRegister(w http.ResponseWriter, r *http.Request) {
+func UserRegister(w http.ResponseWriter, r *http.Request){
 	var user models.User
 
 	err := json.NewDecoder(r.Body).Decode(&user)
@@ -403,10 +409,17 @@ func UserRegister(w http.ResponseWriter, r *http.Request) {
 	}
 
 	userID := insertUser(user)
+	fmt.Println(userID)
 
-	res := response{
-		ID:      userID,
-		Message: "User create successfully",
+	resp := models.Response{
+		Status: "success",
+		Message: "User register successfully",
+	}
+	var res models.UserResponse
+	res.Response = resp
+	res.User,err = getUserByID(userID)
+	if err!=nil{
+		log.Fatalf("Error %v", err)
 	}
 	json.NewEncoder(w).Encode(res)
 }
@@ -471,6 +484,19 @@ func UserLogin(w http.ResponseWriter, r *http.Request) {
 	}
 	fmt.Println(tokenString)
 
+	resp := models.Response{
+		Status: "Success",
+		Message: "User login successfully",
+	}
+
+	var res models.LoginResponse
+	res.Response = resp 
+	res.User, err = getUserByID(user.Id)
+	if err!=nil{
+		log.Fatalf("Error %v", err)
+	}
+	res.Token = tokenString
+	json.NewEncoder(w).Encode(res)
 }
 
 // eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJhdXRob3JpemVkIjp0cnVlLCJleHAiOiIyMDIzLTA1LTE2VDExOjUzOjI0LjAyMDQ1NTYyNSswMjowMCIsInVzZXIiOiJzb2ZpamFAZ21haWwuY29tIn0.hHYX9xD7kT1ngxzJFEIeNHDbjWdEH7NsCgjOJB8GNx8
@@ -544,6 +570,7 @@ func WithJWTAuth(handlerFunc http.HandlerFunc) http.HandlerFunc {
 		user, err := getUserByID(int64(userid))
 
 		claims := token.Claims.(jwt.MapClaims)
+	
 		if user.Email != claims["user"] {
 			log.Fatalf("unable user %v", err)
 		}
@@ -568,11 +595,20 @@ func UpdateUser(w http.ResponseWriter, r *http.Request) {
 	}
 
 	updatedRow := updateUser(int64(id), user)
-	msg := fmt.Sprintf("User updated successfully  %v", updatedRow)
-	res := response{
-		ID:      int64(id),
-		Message: msg,
+	fmt.Println(updatedRow)
+
+	resp := models.Response{
+		Status: "Success",
+		Message: "User updated successfully",
 	}
+	
+	var res models.UserResponse
+	res.Response= resp
+	res.User, err=getUserByID(int64(id))
+	if err!=nil{
+		log.Fatalf("Dont have user with this id %v", err)
+	}
+
 	json.NewEncoder(w).Encode(res)
 }
 

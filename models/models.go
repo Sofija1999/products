@@ -34,3 +34,19 @@ type LoginRequest struct {
 	Email string `json:"email"`
 	Password string `json:"password"`
 }
+
+type Response struct {
+	Status string `json:"status"`
+	Message string `json:"message"`
+}
+
+type LoginResponse struct {
+	Response Response `json:"response"`
+	User User `json:"user"`
+	Token string `json:"token"`
+}
+
+type UserResponse struct {
+	Response Response `json:"response"`
+	User User `json:"user"`
+}

@@ -449,14 +449,14 @@ func UserLogin(w http.ResponseWriter, r *http.Request) {
 	}
 	fmt.Println("email ispravan")
 
-	/*user,err := getUserByEmail(req.Email)
+	user,err := getUserByEmail(req.Email)
 	if err!=nil{
 		log.Fatalf("user dont exist %v", err)
 	}
 
 	if !validPassword(req.Password, user){
 		log.Fatalf("In database we dont have user with this password.")
-	}*/
+	}
  
 
 	tokenString, err := createJWT(req.Email, req.Password)
@@ -470,7 +470,13 @@ func UserLogin(w http.ResponseWriter, r *http.Request) {
 // eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJhdXRob3JpemVkIjp0cnVlLCJleHAiOiIyMDIzLTA1LTE2VDExOjUzOjI0LjAyMDQ1NTYyNSswMjowMCIsInVzZXIiOiJzb2ZpamFAZ21haWwuY29tIn0.hHYX9xD7kT1ngxzJFEIeNHDbjWdEH7NsCgjOJB8GNx8
 
 func validPassword(password string, user models.User) bool {
-	return bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(password))==nil
+	err := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(password))
+	if err!=nil{
+		log.Fatalf("password not equal")
+		return false
+	}
+	fmt.Println("password are equal")
+	return true
 }
 
 func checkEmail(email string) bool {

@@ -414,6 +414,12 @@ func UserRegister(w http.ResponseWriter, r *http.Request) {
 func insertUser(user models.User) int64 {
 	db := createConnection()
 	defer db.Close()
+
+	checkEmail := checkEmail(user.Email)
+	if checkEmail == true {
+		log.Fatalf("In database we have user with identical email. Please try with another email.")
+	}
+
 	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(user.Password), bcrypt.DefaultCost)
 	if err != nil {
 		panic(err)

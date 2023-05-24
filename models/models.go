@@ -20,3 +20,33 @@ type Category struct {
 	Created_at time.Time `json:"created_at"`
 	Updated_at time.Time `json:"updated_at"`
 }
+
+type User struct {
+	Id int64 `json:"id"`
+	First_name string `json:"first_name"`
+	Last_name string `json:"last_name"`
+	Email string `json:"email"`
+	Password string `json:"password"`
+	Created_at time.Time `json:"created_at"`
+}
+
+type LoginRequest struct {
+	Email string `json:"email"`
+	Password string `json:"password"`
+}
+
+type Response struct {
+	Status string `json:"status"`
+	Message string `json:"message"`
+}
+
+type LoginResponse struct {
+	Response Response `json:"response"`
+	User User `json:"user"`
+	Token string `json:"token"`
+}
+
+type UserResponse struct {
+	Response Response `json:"response"`
+	User User `json:"user"`
+}

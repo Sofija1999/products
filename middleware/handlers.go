@@ -18,12 +18,12 @@ import (
 )
 
 type response struct {
-	Id int64 `json:"id, omitempty"`
+	Id      int64  `json:"id,omitempty"`
 	Message string `json:"message,omitempty"`
 }
 
 func createConnection() *sql.DB {
-	err := godotenv.Load(".env")
+	err := godotenv.Load("../.env")
 	if err != nil {
 		log.Fatal("Error loading .env file")
 	}
@@ -42,12 +42,6 @@ func createConnection() *sql.DB {
 	fmt.Println("Successfully connected to postgres..")
 	return db
 }
-
-/*func writeJSON(w http.ResponseWriter, status int, v any) error {
-	w.Header().Add("Content-Type", "application/json")
-	w.WriteHeader(status)
-	return json.NewEncoder(w).Encode(v)
-}*/
 
 func GetProduct(w http.ResponseWriter, r *http.Request) {
 	params := mux.Vars(r)
@@ -400,7 +394,7 @@ func deleteCategory(id int64) int64 {
 	return rowsAffected
 }
 
-func UserRegister(w http.ResponseWriter, r *http.Request){
+func UserRegister(w http.ResponseWriter, r *http.Request) {
 	var user models.User
 
 	err := json.NewDecoder(r.Body).Decode(&user)
@@ -412,13 +406,13 @@ func UserRegister(w http.ResponseWriter, r *http.Request){
 	fmt.Println(userID)
 
 	resp := models.Response{
-		Status: "success",
+		Status:  "success",
 		Message: "User register successfully",
 	}
 	var res models.UserResponse
 	res.Response = resp
-	res.User,err = getUserByID(userID)
-	if err!=nil{
+	res.User, err = getUserByID(userID)
+	if err != nil {
 		log.Fatalf("Error %v", err)
 	}
 	json.NewEncoder(w).Encode(res)
@@ -468,15 +462,14 @@ func UserLogin(w http.ResponseWriter, r *http.Request) {
 	}
 	fmt.Println("email ispravan")
 
-	user,err := getUserByEmail(req.Email)
-	if err!=nil{
+	user, err := getUserByEmail(req.Email)
+	if err != nil {
 		log.Fatalf("user dont exist %v", err)
 	}
 
-	if !validPassword(req.Password, user){
+	if !validPassword(req.Password, user) {
 		log.Fatalf("In database we dont have user with this password.")
 	}
- 
 
 	tokenString, err := createJWT(req.Email, req.Password)
 	if err != nil {
@@ -485,14 +478,14 @@ func UserLogin(w http.ResponseWriter, r *http.Request) {
 	fmt.Println(tokenString)
 
 	resp := models.Response{
-		Status: "Success",
+		Status:  "Success",
 		Message: "User login successfully",
 	}
 
 	var res models.LoginResponse
-	res.Response = resp 
+	res.Response = resp
 	res.User, err = getUserByID(user.Id)
-	if err!=nil{
+	if err != nil {
 		log.Fatalf("Error %v", err)
 	}
 	res.Token = tokenString
@@ -503,7 +496,7 @@ func UserLogin(w http.ResponseWriter, r *http.Request) {
 
 func validPassword(password string, user models.User) bool {
 	err := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(password))
-	if err!=nil{
+	if err != nil {
 		log.Fatalf("password not equal")
 		return false
 	}
@@ -516,25 +509,24 @@ func checkEmail(email string) bool {
 	defer db.Close()
 
 	sqlStatement := `SELECT email FROM users WHERE email=$1`
-	row:= db.QueryRow(sqlStatement, email)
-	
-	switch err := row.Scan(&email); err{
+	row := db.QueryRow(sqlStatement, email)
+
+	switch err := row.Scan(&email); err {
 	case sql.ErrNoRows:
 		fmt.Println("No rows were returned")
 		return false
 	default:
 		return true
 	}
-	
+
 }
 
 func createJWT(email string, password string) (string, error) {
 	claims := &jwt.MapClaims{
 		"expiresAt": 15000,
-		"user": email,
+		"user":      email,
 	}
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
-	
 
 	return token.SignedString([]byte(sampleSecretKey))
 }
@@ -558,19 +550,19 @@ func WithJWTAuth(handlerFunc http.HandlerFunc) http.HandlerFunc {
 		if err != nil {
 			log.Fatalf("token invalid %v", err)
 		}
-		if !token.Valid{
+		if !token.Valid {
 			log.Fatalf("token invalid %v", err)
 		}
 
 		params := mux.Vars(r)
 		userid, err := strconv.Atoi(params["id"])
-		if err!=nil {
+		if err != nil {
 			log.Fatalf("Unable to convert string into int %v", err)
 		}
 		user, err := getUserByID(int64(userid))
 
 		claims := token.Claims.(jwt.MapClaims)
-	
+
 		if user.Email != claims["user"] {
 			log.Fatalf("unable user %v", err)
 		}
@@ -598,14 +590,14 @@ func UpdateUser(w http.ResponseWriter, r *http.Request) {
 	fmt.Println(updatedRow)
 
 	resp := models.Response{
-		Status: "Success",
+		Status:  "Success",
 		Message: "User updated successfully",
 	}
-	
+
 	var res models.UserResponse
-	res.Response= resp
-	res.User, err=getUserByID(int64(id))
-	if err!=nil{
+	res.Response = resp
+	res.User, err = getUserByID(int64(id))
+	if err != nil {
 		log.Fatalf("Dont have user with this id %v", err)
 	}
 

@@ -153,7 +153,7 @@ func TestUpdateProduct(t *testing.T) {
 
 	product, err := json.Marshal(updateProduct)
 	if err != nil {
-		log.Fatalf("Failed to marshal update payload: %v", err)
+		log.Fatalf("Failed to marshal update product: %v", err)
 	}
 
 	req, err := http.NewRequest("PUT", "/api/product/14", bytes.NewBuffer(product))
@@ -191,4 +191,48 @@ func TestUpdateProduct(t *testing.T) {
 		t.Errorf("Expected product %+v, but got %+v", updateProduct, updatedProduct)
 	}
 
+}
+
+func TestGetAllProduct(t *testing.T){
+	req, err := http.NewRequest("GET", "/api/product", nil)
+	if err!=nil{
+		log.Fatalf("Failed to create request %v", err)
+	}
+
+	rr := httptest.NewRecorder()
+
+	router := mux.NewRouter()
+	router.HandleFunc("/api/product", GetAllProducts)
+
+	router.ServeHTTP(rr, req)
+
+	if rr.Code != http.StatusOK{
+		log.Fatalf("Expected status code %v,  got %v", http.StatusOK, rr.Code)
+	}
+
+	var products []models.Product
+	err = json.Unmarshal(rr.Body.Bytes(), &products)
+	if err!=nil{
+		log.Fatalf("Failed to unmarshal response %v", err)
+	}
+
+	if len(products) != 5{
+		log.Fatalf("Expected 5 products, but got %v", len(products))
+	}
+
+	expectedProduct := models.Product{
+		Id:               4,
+		Name:             "plava trenerka",
+		ShortDescription: "plava trenerka koja ima po sebi cvetice",
+		Description:      "potrebno je da se pere na 30 stepeni u masini na programu cotton",
+		Price:            2000,
+		Created:          time.Date(2023, 4, 25, 13, 15, 37, 0, time.UTC),
+		Updated:          time.Date(2023, 4, 25, 13, 18, 45, 0, time.UTC),
+		Quantity:         5,
+		Category_id:      1,
+	}
+
+	if products[0].Id != expectedProduct.Id || products[0].Name != expectedProduct.Name {
+		t.Errorf("Expected product %v, but got %v", expectedProduct, products[0])
+	}
 }

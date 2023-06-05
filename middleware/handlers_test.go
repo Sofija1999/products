@@ -236,3 +236,164 @@ func TestGetAllProduct(t *testing.T){
 		t.Errorf("Expected product %v, but got %v", expectedProduct, products[0])
 	}
 }
+
+func TestCreateCategory(t *testing.T){
+	category := models.Category{
+		Category_name: "obuca",
+	}
+
+	jsonProduct, err := json.Marshal(category)
+	if err != nil {
+		log.Fatalf("Failed to marshal category to JSON: %v", err)
+	}
+
+	req, err := http.NewRequest("POST", "/api/newcategory", bytes.NewBuffer(jsonProduct))
+	if err != nil {
+		log.Fatalf("Failed to create request: %v", err)
+	}
+
+	rr := httptest.NewRecorder()
+
+	router := mux.NewRouter()
+	router.HandleFunc("/api/newcategory", CreateCategory)
+
+	router.ServeHTTP(rr, req)
+
+	if rr.Code != http.StatusOK {
+		log.Fatalf("Expected status code %d, but got %d", http.StatusOK, rr.Code)
+	}
+
+	expectedRes := response{
+		Id:      6,
+		Message: "Category create successfully",
+	}
+
+	var res response
+	err = json.Unmarshal(rr.Body.Bytes(), &res)
+	if err != nil {
+		log.Fatalf("Failed to unmarshal response body: %v", err)
+	}
+
+	if res.Id != expectedRes.Id || res.Message != expectedRes.Message {
+		log.Fatalf("Expected response %v, but got %v", expectedRes, res)
+	}
+}
+
+func TestGetCategory(t *testing.T){
+	req, err := http.NewRequest("GET", "/api/category/6", nil)
+	if err != nil {
+		log.Fatalf("Failed to create request: %v", err)
+	}
+
+	rr := httptest.NewRecorder()
+
+	router := mux.NewRouter()
+	router.HandleFunc("/api/category/{id}", GetCategory)
+
+	router.ServeHTTP(rr, req)
+
+	if rr.Code != http.StatusOK {
+		log.Fatalf("Expected status code %d, but got %d", http.StatusOK, rr.Code)
+	}
+
+	expectedCategory := models.Category{
+		Category_id:               6,
+		Category_name:          "obuca",
+		Created_at:          time.Date(2023, 6, 5, 16, 11, 50, 0, time.UTC),
+		Updated_at:          time.Date(2023, 6, 5, 16, 12, 18, 0, time.UTC),
+	}
+
+	var category models.Category
+	err = json.Unmarshal(rr.Body.Bytes(), &category)
+	if err != nil {
+		log.Fatalf("Failed to unmarshal response body: %v", err)
+	}
+
+	if category.Category_id != expectedCategory.Category_id || category.Category_name != expectedCategory.Category_name {
+		t.Errorf("Expected response %v, but got %v", expectedCategory, category)
+	}
+
+	fmt.Println(category)
+}
+
+func TestUpdateCategory(t *testing.T){
+	updateCategory := models.Category{
+		Category_id:      5,
+		Category_name:   "Updated Product",
+		Updated_at:          time.Now(),
+	}
+
+	category, err := json.Marshal(updateCategory)
+	if err != nil {
+		log.Fatalf("Failed to marshal update category: %v", err)
+	}
+
+	req, err := http.NewRequest("PUT", "/api/category/5", bytes.NewBuffer(category))
+	if err != nil {
+		log.Fatalf("Failed to create request: %v", err)
+	}
+
+	rr := httptest.NewRecorder()
+
+	router := mux.NewRouter()
+	router.HandleFunc("/api/category/{id}", UpdateCategory)
+
+	router.ServeHTTP(rr, req)
+
+	if rr.Code != http.StatusOK {
+		log.Fatalf("Expected status code %d, but got %d", http.StatusOK, rr.Code)
+	}
+
+	var res response
+	err = json.Unmarshal(rr.Body.Bytes(), &res)
+	if err != nil {
+		log.Fatalf("Failed to unmarshal response body: %v", err)
+	}
+
+	expectedMsg := "Category updated successfully  1"
+	if res.Message != expectedMsg {
+		log.Fatalf("Expected message '%s', but got '%s'", expectedMsg, res.Message)
+	}
+
+	updatedCategory, err := getCategory(updateCategory.Category_id)
+	if err != nil {
+		log.Fatalf("Error %v", err)
+	}
+	if updatedCategory.Category_name != updateCategory.Category_name {
+		t.Errorf("Expected product %+v, but got %+v", updateCategory, updateCategory)
+	}
+
+}
+
+func TestDeleteCategory(t *testing.T){
+	req, err := http.NewRequest("DELETE", "/api/deletecategory/3", nil)
+	if err != nil {
+		log.Fatalf("Failed to create request: %v", err)
+	}
+
+	rr := httptest.NewRecorder()
+
+	router := mux.NewRouter()
+	router.HandleFunc("/api/deletecategory/{id}", DeleteCategory)
+
+	router.ServeHTTP(rr, req)
+
+	if rr.Code != http.StatusOK {
+		log.Fatalf("Expected status code %d, but got %d", http.StatusOK, rr.Code)
+	}
+
+	expectedRes := response{
+		Id:      3,
+		Message: "Category deleted successfully 1",
+	}
+
+	var res response
+	err = json.Unmarshal(rr.Body.Bytes(), &res)
+	if err != nil {
+		log.Fatalf("Failed to unmarshal response body: %v", err)
+	}
+
+	if res.Id != expectedRes.Id || res.Message != expectedRes.Message {
+		log.Fatalf("Expected response %v, but got %v", expectedRes, res)
+	}
+}

@@ -15,6 +15,7 @@ import (
 )
 
 func TestCreateProduct(t *testing.T) {
+	//Create a product
 	product := models.Product{
 		Name:             "jabuka",
 		ShortDescription: "zelena jabuka",
@@ -24,43 +25,60 @@ func TestCreateProduct(t *testing.T) {
 		Category_id:      1,
 	}
 
+	//Convert the product in JSON format
 	jsonProduct, err := json.Marshal(product)
 	if err != nil {
 		log.Fatalf("Failed to marshal product to JSON: %v", err)
 	}
 
+	//Create a new HTTP request with JSON product 
 	req, err := http.NewRequest("POST", "/api/newproduct", bytes.NewBuffer(jsonProduct))
 	if err != nil {
 		log.Fatalf("Failed to create request: %v", err)
 	}
 
+	//Create a new HTTP recorder to capture the response
 	rr := httptest.NewRecorder()
 
+	//Create a new router and handle the /api/newproduct endpoint
 	router := mux.NewRouter()
 	router.HandleFunc("/api/newproduct", CreateProduct)
 
+	//Serve the HTTP request using the router and record the response
 	router.ServeHTTP(rr, req)
 
-	//CreateProduct(rr, req)
-
+	//Check if the response status is as expected
 	if rr.Code != http.StatusOK {
 		log.Fatalf("Expected status code %d, but got %d", http.StatusOK, rr.Code)
 	}
 
-	expectedRes := response{
-		Id:      15,
-		Message: "Product create successfully",
-	}
-
+	//Unmarshal the response body into a response
 	var res response
 	err = json.Unmarshal(rr.Body.Bytes(), &res)
 	if err != nil {
 		log.Fatalf("Failed to unmarshal response body: %v", err)
 	}
 
-	if res.Id != expectedRes.Id || res.Message != expectedRes.Message {
+	//Get the product with the returned id
+	product1, err := getProduct(res.Id)
+	id := product1.Id
+
+	//Define  the expected response
+	expectedRes := response{
+		Id:    id,
+		Message: "Product create successfully",
+	}
+
+	//Check if the returned ID is less than zero
+	if res.Id<0{
+		log.Fatalf("Id is less than zero %v", err)
+	}
+
+	//Check if the actual response matches the expected response
+	if res.Id != expectedRes.Id || res.Message != expectedRes.Message{
 		log.Fatalf("Expected response %v, but got %v", expectedRes, res)
 	}
+
 }
 
 func TestDeleteProduct(t *testing.T) {

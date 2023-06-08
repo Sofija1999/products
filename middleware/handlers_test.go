@@ -174,45 +174,87 @@ func TestDeleteProduct(t *testing.T) {
 }
 
 func TestGetProduct(t *testing.T) {
-	req, err := http.NewRequest("GET", "/api/product/4", nil)
+	//Create a product
+	product := models.Product{
+		Name:             "jabuka",
+		ShortDescription: "zelena jabuka",
+		Description:      "zelena jabuka, kisela, srednje velicine",
+		Price:            10,
+		Quantity:         100,
+		Category_id:      1,
+	}
+	
+	//Convert the product in JSON format
+	jsonProduct, err := json.Marshal(product)
+	if err != nil {
+		log.Fatalf("Failed to marshal product to JSON: %v", err)
+	}
+	
+	//Create a new HTTP request with JSON product 
+	req, err := http.NewRequest("POST", "/api/newproduct", bytes.NewBuffer(jsonProduct))
 	if err != nil {
 		log.Fatalf("Failed to create request: %v", err)
 	}
-
+	
+	//Create a new HTTP recorder to capture the response
 	rr := httptest.NewRecorder()
-
+	
+	//Create a new router and handle the /api/newproduct endpoint
 	router := mux.NewRouter()
-	router.HandleFunc("/api/product/{id}", GetProduct)
-
+	router.HandleFunc("/api/newproduct", CreateProduct)
+	
+	//Serve the HTTP request using the router and record the response
 	router.ServeHTTP(rr, req)
-
+	
+	//Check if the response status is as expected
 	if rr.Code != http.StatusOK {
 		log.Fatalf("Expected status code %d, but got %d", http.StatusOK, rr.Code)
 	}
 
-	expectedProduct := models.Product{
-		Id:               4,
-		Name:             "plava trenerka",
-		ShortDescription: "plava trenerka koja ima po sebi cvetice",
-		Description:      "potrebno je da se pere na 30 stepeni u masini na programu cotton",
-		Price:            2000,
-		Created:          time.Date(2023, 4, 25, 13, 15, 37, 0, time.UTC),
-		Updated:          time.Date(2023, 4, 25, 13, 18, 45, 0, time.UTC),
-		Quantity:         5,
-		Category_id:      1,
+	//Unmarshal the response body into a response
+	var res response
+	err = json.Unmarshal(rr.Body.Bytes(), &res)
+	if err != nil {
+		log.Fatalf("Failed to unmarshal response body: %v", err)
+	}
+	
+	//Get the product with the returned id
+	product1, err := getProduct(res.Id)
+	id := product1.Id
+
+	//Create a endpoint for get product with returned product id and create HTTP request 
+	endpoint := fmt.Sprintf("/api/product/%d", id)
+	req1, err := http.NewRequest("GET", endpoint, nil)
+	if err != nil {
+		log.Fatalf("Failed to create request: %v", err)
 	}
 
-	var product models.Product
-	err = json.Unmarshal(rr.Body.Bytes(), &product)
+	//Create a new HTTP recorder to capture the response
+	rr1 := httptest.NewRecorder()
+
+	//Create a new router and handle the /api/product/{id} endpoint
+	router1 := mux.NewRouter()
+	router1.HandleFunc("/api/product/{id}", GetProduct)
+
+	//Serve the HTTP request using the router and record the response
+	router1.ServeHTTP(rr1, req1)
+
+	//Check if the response status is as expected
+	if rr1.Code != http.StatusOK {
+		log.Fatalf("Expected status code %d, but got %d", http.StatusOK, rr1.Code)
+	}
+
+	//Define the expected product
+	var product2 models.Product
+	err = json.Unmarshal(rr1.Body.Bytes(), &product2)
 	if err != nil {
 		log.Fatalf("Failed to unmarshal response body: %v", err)
 	}
 
-	if product.Id != expectedProduct.Id || product.Name != expectedProduct.Name {
-		t.Errorf("Expected response%v, but got %v", expectedProduct, product)
+	//Check if the actual response matches the expected response
+	if product1.Id != product2.Id || product1.Name != product2.Name {
+		t.Errorf("Expected response %v, but got %v", product2, product1)
 	}
-
-	fmt.Println(product)
 
 }
 

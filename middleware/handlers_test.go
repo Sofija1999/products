@@ -82,36 +82,95 @@ func TestCreateProduct(t *testing.T) {
 }
 
 func TestDeleteProduct(t *testing.T) {
-	req, err := http.NewRequest("DELETE", "/api/deleteproduct/11", nil)
+	//Create a product
+	product := models.Product{
+		Name:             "jabuka",
+		ShortDescription: "zelena jabuka",
+		Description:      "zelena jabuka, kisela, srednje velicine",
+		Price:            10,
+		Quantity:         100,
+		Category_id:      1,
+	}
+	
+	//Convert the product in JSON format
+	jsonProduct, err := json.Marshal(product)
+	if err != nil {
+		log.Fatalf("Failed to marshal product to JSON: %v", err)
+	}
+	
+	//Create a new HTTP request with JSON product 
+	req, err := http.NewRequest("POST", "/api/newproduct", bytes.NewBuffer(jsonProduct))
 	if err != nil {
 		log.Fatalf("Failed to create request: %v", err)
 	}
-
+	
+	//Create a new HTTP recorder to capture the response
 	rr := httptest.NewRecorder()
-
+	
+	//Create a new router and handle the /api/newproduct endpoint
 	router := mux.NewRouter()
-	router.HandleFunc("/api/deleteproduct/{id}", DeleteProduct)
-
+	router.HandleFunc("/api/newproduct", CreateProduct)
+	
+	//Serve the HTTP request using the router and record the response
 	router.ServeHTTP(rr, req)
-
+	
+	//Check if the response status is as expected
 	if rr.Code != http.StatusOK {
 		log.Fatalf("Expected status code %d, but got %d", http.StatusOK, rr.Code)
 	}
 
-	expectedRes := response{
-		Id:      11,
-		Message: "Product deleted successfully 1",
-	}
-
+	//Unmarshal the response body into a response
 	var res response
 	err = json.Unmarshal(rr.Body.Bytes(), &res)
 	if err != nil {
 		log.Fatalf("Failed to unmarshal response body: %v", err)
 	}
+	
+	//Get the product with the returned id
+	product1, err := getProduct(res.Id)
+	id := product1.Id
 
-	if res.Id != expectedRes.Id || res.Message != expectedRes.Message {
-		log.Fatalf("Expected response %v, but got %v", expectedRes, res)
+	//Create a endpoint for delete product with returned product id and create HTTP request 
+	endpoint := fmt.Sprintf("/api/deleteproduct/%d", id)
+	req1, err := http.NewRequest("DELETE", endpoint, nil)
+	if err != nil {
+		log.Fatalf("Failed to create request: %v", err)
 	}
+
+	//Create a new HTTP recorder to capture the response
+	rr1 := httptest.NewRecorder()
+
+	//Create a new router and handle the /api/deleteproduct/{id} endpoint
+	router1 := mux.NewRouter()
+	router1.HandleFunc("/api/deleteproduct/{id}", DeleteProduct)
+
+	//Serve the HTTP request using the router and record the response
+	router1.ServeHTTP(rr1, req1)
+
+	//Check if the response status is as expected
+	if rr1.Code != http.StatusOK {
+		log.Fatalf("Expected status code %d, but got %d", http.StatusOK, rr1.Code)
+	}
+
+	//Define  the expected response
+	var res1 response
+	err = json.Unmarshal(rr1.Body.Bytes(), &res1)
+	if err != nil {
+		log.Fatalf("Failed to unmarshal response body: %v", err)
+	}
+
+	//Define  the expected response
+	expectedRes := response{
+		Id:      id,
+		Message: "Product deleted successfully 1",
+	}
+
+	//Check if the actual response matches the expected response
+	if res1.Id != expectedRes.Id || res1.Message != expectedRes.Message {
+		log.Fatalf("Expected response %v, but got %v", expectedRes, res1)
+	}
+
+	log.Fatalf("We are successfully deleted product with id %v", id)
 }
 
 func TestGetProduct(t *testing.T) {

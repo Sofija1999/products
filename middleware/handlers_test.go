@@ -259,8 +259,56 @@ func TestGetProduct(t *testing.T) {
 }
 
 func TestUpdateProduct(t *testing.T) {
+	//Create a product
+	product := models.Product{
+		Name:             "jabuka",
+		ShortDescription: "zelena jabuka",
+		Description:      "zelena jabuka, kisela, srednje velicine",
+		Price:            10,
+		Quantity:         100,
+		Category_id:      1,
+	}
+	
+	//Convert the product in JSON format
+	jsonProduct, err := json.Marshal(product)
+	if err != nil {
+		log.Fatalf("Failed to marshal product to JSON: %v", err)
+	}
+	
+	//Create a new HTTP request with JSON product 
+	req, err := http.NewRequest("POST", "/api/newproduct", bytes.NewBuffer(jsonProduct))
+	if err != nil {
+		log.Fatalf("Failed to create request: %v", err)
+	}
+	
+	//Create a new HTTP recorder to capture the response
+	rr := httptest.NewRecorder()
+	
+	//Create a new router and handle the /api/newproduct endpoint
+	router := mux.NewRouter()
+	router.HandleFunc("/api/newproduct", CreateProduct)
+	
+	//Serve the HTTP request using the router and record the response
+	router.ServeHTTP(rr, req)
+	
+	//Check if the response status is as expected
+	if rr.Code != http.StatusOK {
+		log.Fatalf("Expected status code %d, but got %d", http.StatusOK, rr.Code)
+	}
+
+	//Unmarshal the response body into a response
+	var res response
+	err = json.Unmarshal(rr.Body.Bytes(), &res)
+	if err != nil {
+		log.Fatalf("Failed to unmarshal response body: %v", err)
+	}
+	
+	//Get the product with the returned id
+	product1, err := getProduct(res.Id)
+	id := product1.Id
+
+	//Create updateProduct
 	updateProduct := models.Product{
-		Id:               14,
 		Name:             "Updated Product",
 		ShortDescription: "Updated Short Description",
 		Description:      "Updated Detailed Description",
@@ -270,39 +318,48 @@ func TestUpdateProduct(t *testing.T) {
 		Category_id:      1,
 	}
 
-	product, err := json.Marshal(updateProduct)
+	//Convert updateProduct to JSON format
+	product2, err := json.Marshal(updateProduct)
 	if err != nil {
-		log.Fatalf("Failed to marshal update product: %v", err)
+		log.Fatalf("Failed to marshal update payload: %v", err)
 	}
 
-	req, err := http.NewRequest("PUT", "/api/product/14", bytes.NewBuffer(product))
+	//Create a endpoint for update product with returned product id and create HTTP request
+	endpoint := fmt.Sprintf("/api/product/%d", id)
+	req1, err := http.NewRequest("PUT", endpoint, bytes.NewBuffer(product2))
 	if err != nil {
 		log.Fatalf("Failed to create request: %v", err)
 	}
 
-	rr := httptest.NewRecorder()
+	//Create a new HTTP recorder to capture the response
+	rr1 := httptest.NewRecorder()
 
-	router := mux.NewRouter()
-	router.HandleFunc("/api/product/{id}", UpdateProduct)
+	//Create a new router and handle the /api/product/{id} endpoint
+	router1 := mux.NewRouter()
+	router1.HandleFunc("/api/product/{id}", UpdateProduct)
 
-	router.ServeHTTP(rr, req)
+	//Serve the HTTP request using the router and record the response
+	router1.ServeHTTP(rr1, req1)
 
-	if rr.Code != http.StatusOK {
-		log.Fatalf("Expected status code %d, but got %d", http.StatusOK, rr.Code)
+	//Check if the response status is as expected
+	if rr1.Code != http.StatusOK {
+		log.Fatalf("Expected status code %d, but got %d", http.StatusOK, rr1.Code)
 	}
 
-	var res response
-	err = json.Unmarshal(rr.Body.Bytes(), &res)
+	//Unmarshal the response body into a response
+	var res1 response
+	err = json.Unmarshal(rr1.Body.Bytes(), &res1)
 	if err != nil {
 		log.Fatalf("Failed to unmarshal response body: %v", err)
 	}
 
+	//Check if the expected message equal got message
 	expectedMsg := "Product updated successfully 1"
-	if res.Message != expectedMsg {
-		log.Fatalf("Expected message '%s', but got '%s'", expectedMsg, res.Message)
+	if res1.Message != expectedMsg {
+		log.Fatalf("Expected message '%s', but got '%s'", expectedMsg, res1.Message)
 	}
 
-	updatedProduct, err := getProduct(updateProduct.Id)
+	updatedProduct, err := getProduct(id)
 	if err != nil {
 		log.Fatalf("Error %v", err)
 	}

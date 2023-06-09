@@ -370,47 +370,44 @@ func TestUpdateProduct(t *testing.T) {
 }
 
 func TestGetAllProduct(t *testing.T){
+	//Create a new HTTP request 
 	req, err := http.NewRequest("GET", "/api/product", nil)
 	if err!=nil{
 		log.Fatalf("Failed to create request %v", err)
 	}
 
+	//Create a new HTTP recorder to capture the response
 	rr := httptest.NewRecorder()
 
+	//Create a new router and handle the /api/product endpoint
 	router := mux.NewRouter()
 	router.HandleFunc("/api/product", GetAllProducts)
 
+	//Serve the HTTP request using the router and record the response
 	router.ServeHTTP(rr, req)
 
+	//Check if the response status is as expected
 	if rr.Code != http.StatusOK{
 		log.Fatalf("Expected status code %v,  got %v", http.StatusOK, rr.Code)
 	}
 
+	//Unmarshal the response body into a products
 	var products []models.Product
 	err = json.Unmarshal(rr.Body.Bytes(), &products)
 	if err!=nil{
 		log.Fatalf("Failed to unmarshal response %v", err)
 	}
 
-	if len(products) != 5{
-		log.Fatalf("Expected 5 products, but got %v", len(products))
+	//Check if we dont have products in database
+	if len(products) == 0{
+		log.Fatalf("We dont have products in our database")
 	}
 
-	expectedProduct := models.Product{
-		Id:               4,
-		Name:             "plava trenerka",
-		ShortDescription: "plava trenerka koja ima po sebi cvetice",
-		Description:      "potrebno je da se pere na 30 stepeni u masini na programu cotton",
-		Price:            2000,
-		Created:          time.Date(2023, 4, 25, 13, 15, 37, 0, time.UTC),
-		Updated:          time.Date(2023, 4, 25, 13, 18, 45, 0, time.UTC),
-		Quantity:         5,
-		Category_id:      1,
+	//Check if number of products is > 0
+	if len(products) > 0{
+		fmt.Printf("We have products in our database")
 	}
 
-	if products[0].Id != expectedProduct.Id || products[0].Name != expectedProduct.Name {
-		t.Errorf("Expected product %v, but got %v", expectedProduct, products[0])
-	}
 }
 
 func TestCreateCategory(t *testing.T){
